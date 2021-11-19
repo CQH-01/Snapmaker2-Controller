@@ -115,6 +115,7 @@ class ToolHeadLaser: public ModuleBase {
     }
 
     ErrCode Init(MAC_t &mac, uint8_t mac_index);
+    void DeInit(void);
     void TurnoffLaserIfNeeded();
 
     void TurnOn();
@@ -174,7 +175,7 @@ class ToolHeadLaser: public ModuleBase {
     }
 
     ToolHeadLaserState state() { return state_; }
-
+    void set_state(ToolHeadLaserState state) {state_ = state;}
   private:
     void    CheckFan(uint16_t pwm);
     ErrCode LoadFocus();

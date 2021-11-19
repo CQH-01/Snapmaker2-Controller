@@ -23,12 +23,18 @@
 #include "../common/protocol_sstp.h"
 #include "../common/debug.h"
 #include "../service/system.h"
+#include "../snapmaker.h"
+#include "toolhead_laser.h"
 
 EmergencyStop emergency_stop;
 
 
 static void CallbackEmergencyStopState(CanStdDataFrame_t &cmd) {
-  emergency_stop.SetStatus(cmd.data[0]);
+  static uint8_t emergency_state = EMERGENCY_STOP_INVALID;
+  if (emergency_state != EMERGENCY_STOP_INVALID && cmd.data[0] != emergency_state) {
+    emergency_stop.SetStatus(cmd.data[0]);
+  }
+  emergency_state = cmd.data[0];
 }
 
 
@@ -87,17 +93,58 @@ void EmergencyStop::PollState() {
 }
 
 void EmergencyStop::Process() {
+  static uint16_t count = 0;
+
   if (!IsOnline())
     return;
 
-  if (event_state_ != EMERGENCY_STOP_TRIGGER) {
-    if (state_ == EMERGENCY_STOP_TRIGGER) {
-      event_state_ = EMERGENCY_STOP_TRIGGER;
-      systemservice.StopTrigger(TRIGGER_SOURCE_STOP_BUTTON, SYSCTL_OPC_STOP);
-      ModuleBase::LockMarlinUart(LOCK_SOURCE_EMERGENCY_STOP);
-      ReportStatus();
-      LOG_I("emergency stop!\n");
-    }
+  switch (event_state_) {
+    case EMERGENCY_STOP_ONLINE:
+      break;
+    case EMERGENCY_STOP_FALLING_EDGE_TRIGGER:
+      count = 0;
+      disable_power_domain(POWER_DOMAIN_1);
+      if (ModuleBase::toolhead() == MODULE_TOOLHEAD_LASER_10W || ModuleBase::toolhead() == MODULE_TOOLHEAD_LASER) {
+        laser->DeInit();
+        laser->TurnOff();
+        LOG_I("laser close!\n");
+      }
+      event_state_ = EMERGENCY_STOP_NO_ACTION;
+      break;
+
+    case EMERGENCY_STOP_RISING_EDGE_TRIGGER:
+      enable_power_domain(POWER_DOMAIN_1);
+      if ((++count) % 10 == 0) {
+        if (canhost.Scan_Modules(CAN_CH_2)== E_SUCCESS) {
+          //if (event_state_ == EMERGENCY_STOP_FALLING_EDGE_TRIGGER) break;
+          event_state_ = EMERGENCY_STOP_WAIT_TOOLHEAD;
+          count = 0;
+        } else if (count > 500) {
+          event_state_ = EMERGENCY_STOP_FALLING_EDGE_TRIGGER;
+          LOG_I("Check the tool head connection and try again!\n");
+        }
+      }
+      break;
+
+    case EMERGENCY_STOP_WAIT_TOOLHEAD:
+      if (event_state_ == EMERGENCY_STOP_FALLING_EDGE_TRIGGER) {
+        break;
+      } else if (++count == 10 && laser->state() == TOOLHEAD_LASER_STATE_OFF) {
+        if (ModuleBase::toolhead() == MODULE_TOOLHEAD_LASER_10W || ModuleBase::toolhead() == MODULE_TOOLHEAD_LASER) { 
+          laser->SetOutput(100); 
+          if (event_state_ == EMERGENCY_STOP_FALLING_EDGE_TRIGGER)
+            break;
+          event_state_ = EMERGENCY_STOP_NO_ACTION;
+          LOG_I("laser open!\n"); 
+        } 
+      }
+      break;
+
+    case EMERGENCY_STOP_NO_ACTION:
+
+      break;
+    default:
+      break;
   }
 }
 

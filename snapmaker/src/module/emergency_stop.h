@@ -28,6 +28,16 @@ enum EmergencyStopState : uint8_t {
   EMERGENCY_STOP_ONLINE,
   EMERGENCY_STOP_OFFLINE,
   EMERGENCY_STOP_TRIGGER,
+  // EMERGENCY_STOP_WAIT_TRIGGER,
+  // EMERGENCY_STOP_INVALID,
+  // EMERGENCY_STOP_WAIT_TOOLHEAD,
+  // EMERGENCY_STOP_WAIT_RESET,
+
+  EMERGENCY_STOP_FALLING_EDGE_TRIGGER,
+  EMERGENCY_STOP_RISING_EDGE_TRIGGER,
+  EMERGENCY_STOP_WAIT_TOOLHEAD,
+  EMERGENCY_STOP_NO_ACTION,
+  EMERGENCY_STOP_INVALID
 };
 
 class EmergencyStop: public ModuleBase {
@@ -44,7 +54,10 @@ class EmergencyStop: public ModuleBase {
     bool IsTriggered() {return state_ == EMERGENCY_STOP_TRIGGER;}
     void Disable();
     void Enable();
-    void SetStatus(uint8_t status) {if (status == 0) state_ = EMERGENCY_STOP_TRIGGER;}
+    //void SetStatus(uint8_t status) { state_ = (status == 0) ? EMERGENCY_STOP_TRIGGER : EMERGENCY_STOP_ONLINE;}
+    void SetStatus(uint8_t status) { 
+      event_state_ = status ? EMERGENCY_STOP_RISING_EDGE_TRIGGER : EMERGENCY_STOP_FALLING_EDGE_TRIGGER;
+    }
     void Process();
 
     void PollState();

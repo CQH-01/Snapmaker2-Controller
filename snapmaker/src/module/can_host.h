@@ -100,6 +100,11 @@ class CanHost {
     void ReceiveHandler(void *parameter);
     void EventHandler(void *parameter);
 
+    ErrCode Scan_Modules(CanChannelNumber num) {
+      CanPacket_t pkt = {num, CAN_FRAME_EXT_REMOTE, 0x01, 0, 0};
+      return can_->Write(pkt);
+    }
+
     ErrCode UpgradeModules(uint32_t fw_addr, uint32_t length);
 
     message_id_t RegisterFunction(Function_t const &function, CanStdCmdCallback_t callback);
@@ -153,6 +158,7 @@ class CanHost {
 
     MAC_t   mac_[MODULE_SUPPORT_CONNECTED_MAX];
     uint8_t total_mac_;
+    CanChannel *can_;
 };
 
 extern CanHost canhost;
