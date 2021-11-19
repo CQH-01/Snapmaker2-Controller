@@ -159,6 +159,20 @@ ErrCode ToolHeadLaser::Init(MAC_t &mac, uint8_t mac_index) {
   return E_SUCCESS;
 }
 
+void ToolHeadLaser::DeInit(void) {
+  state_ = TOOLHEAD_LASER_STATE_OFF;
+  fan_state_ = TOOLHEAD_LASER_FAN_STATE_CLOSED;
+  fan_tick_  = 0;
+  timer_in_process_ = 0;
+  pitch_ = 0;
+  roll_ = 0;
+  security_status_ = 0;
+  laser_temperature_ = 0;
+  need_to_turnoff_laser_ = false;
+  need_to_tell_hmi_ = false;
+  laser_10w_status_ = LASER_10W_DISABLE;
+}
+
 void ToolHeadLaser::TurnoffLaserIfNeeded() {
   bool is_disable_laser = (laser_10w_status_ == LASER_10W_WAIT_DISABLE) && (++laser_10w_tick_ > LASER_10W_DISABLE_DELAY);
   if (laser->need_to_turnoff_laser_) {
