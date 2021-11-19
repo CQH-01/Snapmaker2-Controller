@@ -428,7 +428,8 @@ void CanHost::EventHandler(void *parameter) {
   EventGroupHandle_t event_group = ((SnapmakerHandle_t)parameter)->event_group;
 
   CanPacket_t pkt = {CAN_CH_2, CAN_FRAME_EXT_REMOTE, 0x01, 0, 0};
-
+  
+  can_ = &can;
   LOG_I("Scanning modules ...\n");
   vTaskDelay(pdMS_TO_TICKS(2000));
 
@@ -565,6 +566,7 @@ ErrCode CanHost::InitModules(MAC_t &mac) {
       if (mac_[i].bits.configured) {
         // if yes, just re-bind function id to message id
         return BindMessageID(mac, i);
+        
       }
       else {
         // if no, just try to configure it again
