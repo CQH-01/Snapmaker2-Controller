@@ -59,7 +59,7 @@ class Linear: public ModuleBase  {
       machine_size_ = MACHINE_SIZE_UNKNOWN;
       endstop_      = 0xFFFFFFFF;
     }
-
+    static uint8_t linear_num;
     ErrCode Init(MAC_t &mac, uint8_t mac_index);
 
     ErrCode CheckModuleType();

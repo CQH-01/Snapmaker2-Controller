@@ -45,6 +45,7 @@
 #define TimSetPwm(n)  Tim1SetCCR4(n)
 #define TimGetPwm()  Tim1GetCCR4()
 
+uint8_t ToolHeadLaser::restart = 0;
 ToolHeadLaser laser_1_6_w(MODULE_DEVICE_ID_1_6_W_LASER);
 ToolHeadLaser laser_10w(MODULE_DEVICE_ID_10W_LASER);
 ToolHeadLaser *laser = &laser_1_6_w;
@@ -66,7 +67,14 @@ static void CallbackAckLaserFocus(CanStdDataFrame_t &cmd) {
 }
 
 static void CallbackAckReportSecurity(CanStdDataFrame_t &cmd) {
+  // if ((cmd.data[0] & 0x8) == 0x8)
+  //   ToolHeadLaser::restart = 2;
+  // else if ((cmd.data[0] & 0x8) == 0)
+  //   ToolHeadLaser::restart = 1;
+
   laser->security_status_ = cmd.data[0];
+  laser->security_status_ &= ~0x4;
+  laser->security_status_ &= ~0x8;
   laser->pitch_ = (cmd.data[1] << 8) | cmd.data[2];
   laser->roll_ = (cmd.data[3] << 8) | cmd.data[4];
   laser->laser_temperature_ = cmd.data[5];
@@ -83,6 +91,9 @@ static void CallbackAckReportSecurity(CanStdDataFrame_t &cmd) {
       laser->TurnOff();
     }
   }
+
+  if (laser->security_status_ == 0)
+    ToolHeadLaser::restart = 1;
 }
 
 ErrCode ToolHeadLaser::Init(MAC_t &mac, uint8_t mac_index) {
@@ -171,6 +182,10 @@ void ToolHeadLaser::DeInit(void) {
   need_to_turnoff_laser_ = false;
   need_to_tell_hmi_ = false;
   laser_10w_status_ = LASER_10W_DISABLE;
+  laser_pwm_pin_checked_ = false;
+  pwm_pin_pullup_state_ = 0xff;
+  pwm_pin_pulldown_state_ = 0xff;
+  ToolHeadLaser::restart = 0;
 }
 
 void ToolHeadLaser::TurnoffLaserIfNeeded() {
@@ -817,10 +832,10 @@ ErrCode ToolHeadLaser::SendSecurityStatus() {
 
   buff[0] = laser->security_status_;
   buff[1] = laser->laser_temperature_;
-  buff[2] = laser->roll_ >> 8;
-  buff[3] = laser->roll_ & 0xff;
-  buff[4] = laser->pitch_ >> 8;
-  buff[5] = laser->pitch_ & 0xff;
+  buff[2] = 0;//laser->roll_ >> 8;
+  buff[3] = 0;//laser->roll_ & 0xff;
+  buff[4] = 0;//laser->pitch_ >> 8;
+  buff[5] = 0;//laser->pitch_ & 0xff;
 
   event.length = 6;
   event.data = buff;
@@ -978,7 +993,8 @@ void ToolHeadLaser::LaserConfirmPinState() {
   cmd.data      = can_buffer;
   cmd.length    = 1;
 
-  canhost.SendStdCmd(cmd);
+  // canhost.SendStdCmd(cmd);
+  canhost.SendStdCmdSync(cmd, 2000);
 }
 
 void ToolHeadLaser::Process() {

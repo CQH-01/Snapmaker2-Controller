@@ -47,7 +47,7 @@ class EmergencyStop: public ModuleBase {
       event_state_ = EMERGENCY_STOP_OFFLINE;
       mac_index_   = MODULE_MAC_INDEX_INVALID;
     }
-
+    static uint8_t restart;
     ErrCode Init(MAC_t &mac, uint8_t mac_index);
 
     bool IsOnline() { return (mac_index_ != MODULE_MAC_INDEX_INVALID); }

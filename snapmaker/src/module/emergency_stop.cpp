@@ -25,7 +25,9 @@
 #include "../service/system.h"
 #include "../snapmaker.h"
 #include "toolhead_laser.h"
+#include "linear.h"
 
+uint8_t EmergencyStop::restart = 0;
 EmergencyStop emergency_stop;
 
 
@@ -107,9 +109,11 @@ void EmergencyStop::Process() {
       if (ModuleBase::toolhead() == MODULE_TOOLHEAD_LASER_10W || ModuleBase::toolhead() == MODULE_TOOLHEAD_LASER) {
         laser->DeInit();
         laser->TurnOff();
+        restart = 0;
+        Linear::linear_num = 0;
         LOG_I("laser close!\n");
       }
-      event_state_ = EMERGENCY_STOP_NO_ACTION;
+      event_state_ = EMERGENCY_STOP_NO_ACTION + 1;
       break;
 
     case EMERGENCY_STOP_RISING_EDGE_TRIGGER:
@@ -130,18 +134,29 @@ void EmergencyStop::Process() {
       if (event_state_ == EMERGENCY_STOP_FALLING_EDGE_TRIGGER) {
         break;
       } else if (++count == 10 && laser->state() == TOOLHEAD_LASER_STATE_OFF) {
-        if (ModuleBase::toolhead() == MODULE_TOOLHEAD_LASER_10W || ModuleBase::toolhead() == MODULE_TOOLHEAD_LASER) { 
-          laser->SetOutput(100); 
+        if (ModuleBase::toolhead() == MODULE_TOOLHEAD_LASER_10W || ModuleBase::toolhead() == MODULE_TOOLHEAD_LASER) {
+          //laser->SetOutput(1);
           if (event_state_ == EMERGENCY_STOP_FALLING_EDGE_TRIGGER)
             break;
           event_state_ = EMERGENCY_STOP_NO_ACTION;
-          LOG_I("laser open!\n"); 
-        } 
+          LOG_I("laser open!\n");
+        }
       }
       break;
 
     case EMERGENCY_STOP_NO_ACTION:
-
+      if (ToolHeadLaser::restart == 1) {
+        if (++count >= 500 || Linear::linear_num == 5) {
+          linear_p->UpdateMachineSize();
+          // laser->pwm_pin_check();
+          restart = 1;
+          event_state_++;
+          //laser->SetOutput(1);
+        }
+      } else if (ToolHeadLaser::restart == 2 && ++count >= 10) {
+        count = 0;
+        laser->pwm_pin_check();
+      }
       break;
     default:
       break;
