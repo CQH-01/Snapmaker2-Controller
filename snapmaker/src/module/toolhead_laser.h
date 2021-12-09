@@ -113,7 +113,7 @@ class ToolHeadLaser: public ModuleBase {
       pwm_pin_pullup_state_ = 0xff;
       pwm_pin_pulldown_state_ = 0xff;
     }
-
+    static uint8_t restart;
     ErrCode Init(MAC_t &mac, uint8_t mac_index);
     void DeInit(void);
     void TurnoffLaserIfNeeded();
@@ -176,6 +176,7 @@ class ToolHeadLaser: public ModuleBase {
 
     ToolHeadLaserState state() { return state_; }
     void set_state(ToolHeadLaserState state) {state_ = state;}
+    void pwm_pin_check() {laser_pwm_pin_checked_ = false;}
   private:
     void    CheckFan(uint16_t pwm);
     ErrCode LoadFocus();

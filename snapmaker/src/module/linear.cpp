@@ -28,6 +28,7 @@
 #include "src/inc/MarlinConfig.h"
 #include "src/module/endstops.h"
 
+uint8_t Linear::linear_num = 0;
 Linear linear(MODULE_DEVICE_ID_LINEAR);
 Linear linear_tmc(MODULE_DEVICE_ID_LINEAR_TMC);
 
@@ -144,7 +145,7 @@ ErrCode Linear::Init(MAC_t &mac, uint8_t mac_index) {
     // it is one of X/Y/Z-2
     type += 3;
   }
-
+  Linear::linear_num++;
   mac_index_[type] = mac_index;
 
   cmd.mac    = mac;

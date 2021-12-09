@@ -428,7 +428,7 @@ void CanHost::EventHandler(void *parameter) {
   EventGroupHandle_t event_group = ((SnapmakerHandle_t)parameter)->event_group;
 
   CanPacket_t pkt = {CAN_CH_2, CAN_FRAME_EXT_REMOTE, 0x01, 0, 0};
-  
+
   can_ = &can;
   LOG_I("Scanning modules ...\n");
   vTaskDelay(pdMS_TO_TICKS(2000));
@@ -449,7 +449,7 @@ void CanHost::EventHandler(void *parameter) {
     InitModules(mac);
   }
 
-  linear_p->UpdateMachineSize();
+  // linear_p->UpdateMachineSize();
 
   for (int i = 0; static_modules[i] != NULL; i++) {
       static_modules[i]->PostInit();
@@ -562,11 +562,21 @@ ErrCode CanHost::InitModules(MAC_t &mac) {
   ShowModuleVersion(mac);
   // check if this mac is configured
   for (i = 0; i < total_mac_; i++) {
+    if ((device_id == MODULE_DEVICE_ID_10W_LASER) && (device_id == MODULE_GET_DEVICE_ID(mac_[i].val))) {
+      if (mac_[i].bits.configured) {
+        return BindMessageID(mac, i);
+      }
+      else {
+        existed = true;
+        mac_index = i;
+        break;
+      }
+    }
+
     if (mac.bits.id == mac_[i].bits.id) {
       if (mac_[i].bits.configured) {
         // if yes, just re-bind function id to message id
         return BindMessageID(mac, i);
-        
       }
       else {
         // if no, just try to configure it again
