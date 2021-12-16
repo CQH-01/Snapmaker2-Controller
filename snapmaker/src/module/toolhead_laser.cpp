@@ -67,6 +67,7 @@ static void CallbackAckLaserFocus(CanStdDataFrame_t &cmd) {
 
 static void CallbackAckReportSecurity(CanStdDataFrame_t &cmd) {
   laser->security_status_ = cmd.data[0];
+  laser->security_status_ &= ~0x8;
   laser->pitch_ = (cmd.data[1] << 8) | cmd.data[2];
   laser->roll_ = (cmd.data[3] << 8) | cmd.data[4];
   laser->laser_temperature_ = cmd.data[5];
@@ -986,16 +987,16 @@ void ToolHeadLaser::Process() {
   timer_in_process_ = 0;
 
   if (laser->device_id_ == MODULE_DEVICE_ID_10W_LASER) {
-    if (laser_pwm_pin_checked_ == false) {
-      PwmCtrlDirectly(255);
-      pwm_pin_pulldown_state_ = LaserGetPwmPinState();
-      PwmCtrlDirectly(0);
-      pwm_pin_pullup_state_ = LaserGetPwmPinState();
-      if (pwm_pin_pulldown_state_ == 0 && pwm_pin_pullup_state_ == 1) {
-        LaserConfirmPinState();
-      }
-      laser_pwm_pin_checked_ = true;
-    }
+    // if (laser_pwm_pin_checked_ == false) {
+    //   PwmCtrlDirectly(255);
+    //   pwm_pin_pulldown_state_ = LaserGetPwmPinState();
+    //   PwmCtrlDirectly(0);
+    //   pwm_pin_pullup_state_ = LaserGetPwmPinState();
+    //   if (pwm_pin_pulldown_state_ == 0 && pwm_pin_pullup_state_ == 1) {
+    //     LaserConfirmPinState();
+    //   }
+    //   laser_pwm_pin_checked_ = true;
+    // }
 
     if (need_to_tell_hmi_) {
       need_to_tell_hmi_ = false;
