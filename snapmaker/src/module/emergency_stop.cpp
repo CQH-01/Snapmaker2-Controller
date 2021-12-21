@@ -27,7 +27,7 @@
 #include "toolhead_laser.h"
 #include "linear.h"
 
-uint8_t EmergencyStop::restart = 0;
+uint8_t EmergencyStop::restart = 1;
 EmergencyStop emergency_stop;
 
 
@@ -110,6 +110,7 @@ void EmergencyStop::Process() {
         laser->DeInit();
         laser->TurnOff();
         restart = 0;
+        laser->SetFanPower(0);
         Linear::linear_num = 0;
         LOG_I("laser close!\n");
       }
@@ -151,6 +152,7 @@ void EmergencyStop::Process() {
           // laser->pwm_pin_check();
           restart = 1;
           event_state_++;
+          laser->SetFanPower(100);
           //laser->SetOutput(1);
         }
       } else if (ToolHeadLaser::restart == 2 && ++count >= 10) {

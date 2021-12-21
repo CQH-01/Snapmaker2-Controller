@@ -470,7 +470,7 @@ static ErrCode HandleFileGcodePack(uint8_t *event_buff, uint16_t size) {
 static ErrCode SendStatus(SSTP_Event_t &event) {
   // won't send status to HMI while upgrading external module
   if (upgrade.GetState() != UPGRADE_STA_UPGRADING_EM) {
-    //if (EmergencyStop::restart)
+    if (EmergencyStop::restart)
       systemservice.SendStatus(event);
   }
   return E_SUCCESS;

@@ -449,7 +449,7 @@ void CanHost::EventHandler(void *parameter) {
     InitModules(mac);
   }
 
-  // linear_p->UpdateMachineSize();
+   linear_p->UpdateMachineSize();
 
   for (int i = 0; static_modules[i] != NULL; i++) {
       static_modules[i]->PostInit();
