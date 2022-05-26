@@ -15,11 +15,10 @@ static __attribute__((section(".data"))) uint8_t BreathLedTable[] = {
   50,84,104,119,130,139,147,153,159,164,169,173,177,181,184,188,191,193,196,199,201,203,206,208,210,212,213,215,217,219,220,222,223,225,226,228,229,230,232,233,234,235,237,238,239,240,241,242,243,244,245,246,247,248,249,250,251,251,252,253,254,255,255,255,254,253,252,251,251,250,249,248,247,246,245,244,243,242,241,240
   ,239,238,237,235,234,233,232,230,229,228,226,225,223,222,220,219,217,215,213,212,210,208,206,203,201,199,196,193,191,188,184,181,177,173,169,164,159,153,147,139,130,119,104,84,50
 };
-  
 /**
  * BreathLightInit:
  */
-void BreathLightInit() 
+void BreathLightInit()
 {
   DAC_InitTypeDef DAC_InitStruct;
   GPIO_InitTypeDef GPIO_InitStruct;
@@ -37,7 +36,7 @@ void BreathLightInit()
   RCC_APB1PeriphClockCmd(RCC_APB1Periph_DAC | RCC_APB1Periph_TIM7, ENABLE);
   RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_AFIO, ENABLE);
   RCC_AHBPeriphClockCmd(RCC_AHBPeriph_DMA2, ENABLE);
-  
+
   GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AIN;
   GPIO_InitStruct.GPIO_Pin = GPIO_Pin_5;
   GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
@@ -74,13 +73,29 @@ void BreathLightClose(void) {
   DMA_Cmd(DMA2_Channel4, DISABLE);
   TIM_Cmd(TIM7, DISABLE);
   RCC_APB1PeriphClockCmd(RCC_APB1Periph_DAC | RCC_APB1Periph_TIM7, DISABLE);
-  
+
   GPIO_InitStruct.GPIO_Mode = GPIO_Mode_Out_PP;
   GPIO_InitStruct.GPIO_Pin = GPIO_Pin_5;
   GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
   GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   GPIO_ResetBits(GPIOA, GPIO_Pin_5);
+}
+
+void BreathLightAlwaysOn(void) {
+  GPIO_InitTypeDef GPIO_InitStruct;
+
+  DAC_Cmd(DAC_Channel_2, DISABLE);
+  DMA_Cmd(DMA2_Channel4, DISABLE);
+  TIM_Cmd(TIM7, DISABLE);
+  RCC_APB1PeriphClockCmd(RCC_APB1Periph_DAC | RCC_APB1Periph_TIM7, DISABLE);
+
+  GPIO_InitStruct.GPIO_Mode = GPIO_Mode_Out_PP;
+  GPIO_InitStruct.GPIO_Pin = GPIO_Pin_5;
+  GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
+  GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  GPIO_SetBits(GPIOA, GPIO_Pin_5);
 }
 
 #endif // def __GD32F1__

@@ -35,47 +35,21 @@ Linear linear_tmc(MODULE_DEVICE_ID_LINEAR_TMC);
 Linear *linear_p = &linear;
 
 LinearAxisType Linear::DetectAxis(MAC_t &mac, uint8_t &endstop) {
-  CanExtCmd_t cmd;
-  uint8_t     buffer[16];
-
+  ErrCode ret;
   int i;
-  int pins[3] = {X_DIR_PIN, Y_DIR_PIN, Z_DIR_PIN};
 
-  cmd.mac    = mac;
-  cmd.data   = buffer;
+  uint8_t dir_pin[] = {E0_DIR_PIN, E1_DIR_PIN, X_DIR_PIN, Y_DIR_PIN, Z_DIR_PIN, B_DIR_PIN};
 
-  WRITE(X_DIR_PIN, LOW);
-  WRITE(Y_DIR_PIN, LOW);
-  WRITE(Z_DIR_PIN, LOW);
+  for (uint8_t i = 0; i < 6; i++)
+      SET_OUTPUT(dir_pin[i]);
+  vTaskDelay(pdMS_TO_TICKS(10));
 
-  for (i = LINEAR_AXIS_X1; i <= LINEAR_AXIS_Z1; i++)  {
-    WRITE(pins[i], HIGH);
-
-    vTaskDelay(pdMS_TO_TICKS(10));
-
-    cmd.data[MODULE_EXT_CMD_INDEX_ID]   = MODULE_EXT_CMD_CONFIG_REQ;
-    cmd.data[MODULE_EXT_CMD_INDEX_DATA] = i;
-    cmd.length = 2;
-
-    if (canhost.SendExtCmdSync(cmd, 500) == E_SUCCESS) {
-      if (cmd.data[MODULE_EXT_CMD_INDEX_DATA] == 1) {
-        endstop = cmd.data[MODULE_EXT_CMD_INDEX_DATA + 3];
-        break;
-      }
+  for (i = 0; i < 6; i++) {
+    ret = ModuleBase::InitModule8p(mac, dir_pin[i], 0);
+    if (ret == E_SUCCESS) {
+      break;
     }
-
-    WRITE(pins[i], LOW);
   }
-
-  if (i > LINEAR_AXIS_Z1) {
-    // if nobody tell us it detected low level from dir signal
-    // we cannot recognize what kind of axis it is
-    i = LINEAR_AXIS_UNKNOWN;
-  }
-  else {
-    WRITE(pins[i], LOW);
-  }
-
   return (LinearAxisType)i;
 }
 
@@ -93,25 +67,34 @@ static void LinearCallbackEndstopX1(CanStdDataFrame_t &cmd) {
     linear_p->SetEndstopBit(X_MAX, cmd.data[0]);
     break;
   }
+  linear_p->alive_[0] = 1;
 }
 
 
 static void LinearCallbackEndstopY1(CanStdDataFrame_t &cmd) {
   linear_p->SetEndstopBit(Y_MAX, cmd.data[0]);
+  linear_p->alive_[1] = 1;
 }
 
 static void LinearCallbackEndstopY2(CanStdDataFrame_t &cmd) {
   linear_p->SetEndstopBit(Y_MAX, cmd.data[0]);
+  linear_p->alive_[2] = 1;
 }
 
 static void LinearCallbackEndstopZ1(CanStdDataFrame_t &cmd) {
   linear_p->SetEndstopBit(Z_MAX, cmd.data[0]);
+  linear_p->alive_[3] = 1;
 }
 
 static void LinearCallbackEndstopZ2(CanStdDataFrame_t &cmd) {
   linear_p->SetEndstopBit(Z_MAX, cmd.data[0]);
+  linear_p->alive_[4] = 1;
 }
 
+static void LinearCallbackEndstopZ3(CanStdDataFrame_t &cmd) {
+
+  linear_p->alive_[5] = 1;
+}
 
 ErrCode Linear::Init(MAC_t &mac, uint8_t mac_index) {
   uint8_t   type;
@@ -177,23 +160,26 @@ ErrCode Linear::Init(MAC_t &mac, uint8_t mac_index) {
     return E_FAILURE;
 
   switch (type) {
-  case LINEAR_AXIS_X1:
-  case LINEAR_AXIS_X2:
+
+  case 0:
     cb = LinearCallbackEndstopX1;
     break;
 
-  case LINEAR_AXIS_Y1:
+  case 1:
     cb = LinearCallbackEndstopY1;
     break;
-  case LINEAR_AXIS_Y2:
+  case 2:
     cb = LinearCallbackEndstopY2;
     break;
 
-  case LINEAR_AXIS_Z1:
+  case 3:
     cb = LinearCallbackEndstopZ1;
     break;
-  case LINEAR_AXIS_Z2:
+  case 4:
     cb = LinearCallbackEndstopZ2;
+    break;
+  case 5:
+    cb = LinearCallbackEndstopZ3;
     break;
 
   default:
@@ -533,4 +519,29 @@ ErrCode Linear::GetLengthOrLead(SSTP_Event_t &event, uint8_t ext_cmd) {
   event.length = (uint16_t)j;
 
   return hmi.Send(event);
+}
+
+void Linear::Process() {
+  if (++timer_in_process_ < 100)
+    return;
+
+  for (int i = 0, flag = 0; i < LINEAR_AXIS_MAX; i++) {
+    if ((i == LINEAR_AXIS_MAX - 1) && flag) LOG_I("\n");
+    if (endstop_msg_[i] == MODULE_MESSAGE_ID_INVALID)
+      continue;
+
+    if (alive_[i]) {
+      alive_[i] = 0;
+      // LOG_I("-- normal port: %d\n", i+1);
+    } else {
+      BreathLightAlwaysOn();
+      if (flag == 0) {
+        flag = 1;
+        LOG_I("-- abnormal port:");
+      }
+      LOG_I(" [%d] ", i+1);
+    }
+  }
+  PollEndstop(LINEAR_AXIS_ALL);
+  timer_in_process_ = 0;
 }

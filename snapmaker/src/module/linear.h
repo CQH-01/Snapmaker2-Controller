@@ -55,10 +55,13 @@ class Linear: public ModuleBase  {
         mac_index_[i]   = MODULE_MAC_INDEX_INVALID;
         endstop_msg_[i] = MODULE_MESSAGE_ID_INVALID;
         length_[i]      = 0;
+        alive_[i] = 1;
       }
       machine_size_ = MACHINE_SIZE_UNKNOWN;
       endstop_      = 0xFFFFFFFF;
+      timer_in_process_ = 0;
     }
+    uint8_t alive_[LINEAR_AXIS_MAX];
     static uint8_t linear_num;
     ErrCode Init(MAC_t &mac, uint8_t mac_index);
 
@@ -100,6 +103,7 @@ class Linear: public ModuleBase  {
 
     MachineSize machine_size() { return machine_size_; }
     void reset_axis_steps_per_unit(void);
+    void Process();
 
   private:
     LinearAxisType DetectAxis(MAC_t &mac, uint8_t &endstop);
@@ -117,6 +121,8 @@ class Linear: public ModuleBase  {
 
     MachineSize   machine_size_;
     float axis_steps_per_unit[5] = DEFAULT_TMC_AXIS_STEPS_PER_UNIT;
+    uint16_t timer_in_process_;
+
 };
 
 extern Linear linear;

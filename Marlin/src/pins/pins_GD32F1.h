@@ -65,7 +65,7 @@ enum {
 #define X_STOP_PIN        PE12
 #define Y_STOP_PIN        PE12
 #define Z_STOP_PIN        PE12
-#define Z_MIN_PROBE_PIN   -1 
+#define Z_MIN_PROBE_PIN   -1
 
 //
 // Steppers
@@ -92,7 +92,7 @@ extern uint8_t e0_step_pin, e0_dir_pin, e0_enable_pin;
 #define B_ENABLE_PIN       b_enable_pin
 
 #define E0_STEP_PIN        e0_step_pin
-#define E0_DIR_PIN         e0_dir_pin
+#define E0_DIR_PIN         PB10 //e0_dir_pin
 #define E0_ENABLE_PIN      e0_enable_pin
 
 /**
